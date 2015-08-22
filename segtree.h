@@ -7,16 +7,16 @@
 
 #define pr std::cout
 #define nl std::endl
-#define Tmpl template<typename T, typename U, typename Evaluator>
+#define Tmpl template<typename T, typename U, typename Aggregator>
 #define Tmpl2 template<typename Iterator>
 #define Class Segtree
-#define ClassTmpl Class<T, U, Evaluator>
+#define ClassTmpl Class<T, U, Aggregator>
 
 namespace gokul2411s {
     Tmpl
         class Class {
             public:
-                Tmpl2 Class(Iterator begin, Iterator end, Evaluator const & evaluator = Evaluator());
+                Tmpl2 Class(Iterator begin, Iterator end, Aggregator const & aggregator = Aggregator());
                 ~Class();
                 U query(size_t start, size_t end);
                 void update(size_t pos, T val);
@@ -44,15 +44,15 @@ namespace gokul2411s {
                 
                 size_t tree_size_;
                 char * pool_;
-                Evaluator evaluator_;
+                Aggregator aggregator_;
                 Tmpl2 U build(Iterator begin, Iterator end, size_t l, size_t r, size_t index);
                 U query(size_t start, size_t end, size_t index);
                 void update(size_t l, size_t r, T val, size_t index);
                 void apply_lazy(size_t index, Node * n);
                 inline Node * get_node(size_t index);
                 size_t tree_size(size_t num_items) const;
-                inline U evaluate(U const & a, U const & b) const;
-                inline U evaluate_times(U const & a, size_t times) const;
+                inline U aggregate(U const & a, U const & b) const;
+                inline U aggregate_times(U const & a, size_t times) const;
                 inline size_t get_lindex(size_t index) const;
                 inline size_t get_rindex(size_t index) const;
                 inline bool node_non_trivial(Node const * n) const;
@@ -61,8 +61,8 @@ namespace gokul2411s {
         };
 
     Tmpl
-        Tmpl2 ClassTmpl::Class(Iterator begin, Iterator end, Evaluator const & evaluator)
-        : tree_size_(tree_size(end - begin)), evaluator_(evaluator) {
+        Tmpl2 ClassTmpl::Class(Iterator begin, Iterator end, Aggregator const & aggregator)
+        : tree_size_(tree_size(end - begin)), aggregator_(aggregator) {
             size_t l = 0, r = end - begin - 1;
             if (r >= 0) {
                 pool_ = (char *)calloc(tree_size_, sizeof(Node));
@@ -106,7 +106,7 @@ namespace gokul2411s {
                 size_t mid = l + (r - l) / 2;
                 U l_val(build(begin, end, l, mid, get_lindex(index)));
                 U r_val(build(begin, end, mid + 1, r, get_rindex(index)));
-                val = evaluate(l_val, r_val);
+                val = aggregate(l_val, r_val);
             }
             new (get_node(index)) Node(val, l, r);
             return val;
@@ -116,7 +116,7 @@ namespace gokul2411s {
         U ClassTmpl::query(size_t l, size_t r, size_t index) {
             Node * n = get_node(index);
             if (node_outside_range(n, l, r)) {
-                return evaluator_.null();
+                return aggregator_.null();
             }
 
             apply_lazy(index, n);
@@ -124,7 +124,7 @@ namespace gokul2411s {
             if (node_within_range(n, l, r)) {
                 return n->val;
             } else {
-                return evaluate(query(l, r, get_lindex(index)), query(l, r, get_rindex(index)));
+                return aggregate(query(l, r, get_lindex(index)), query(l, r, get_rindex(index)));
             }
         }
 
@@ -138,7 +138,7 @@ namespace gokul2411s {
             apply_lazy(index, n);
 
             if (node_within_range(n, l, r)) {
-                n->val = evaluate_times(val, n->end - n->start + 1);
+                n->val = aggregate_times(val, n->end - n->start + 1);
                 if (node_non_trivial(n)) {
                     n->set_lazy(val);
                 }
@@ -151,7 +151,7 @@ namespace gokul2411s {
 
                 Node * ln = get_node(lindex); 
                 Node * rn = get_node(rindex); 
-                n->val = evaluate(ln->val, rn->val);
+                n->val = aggregate(ln->val, rn->val);
             }
         }
 
@@ -159,12 +159,12 @@ namespace gokul2411s {
         void ClassTmpl::apply_lazy(size_t index, Node * n) {
             if (n->has_lazy) {
                 Node * ln = get_node(get_lindex(index));
-                ln->val = evaluate_times(n->lazy, ln->end - ln->start + 1);
+                ln->val = aggregate_times(n->lazy, ln->end - ln->start + 1);
                 if (node_non_trivial(ln)) {
                     ln->set_lazy(n->lazy);
                 }
                 Node * rn = get_node(get_rindex(index));
-                rn->val = evaluate_times(n->lazy, rn->end - rn->start + 1);
+                rn->val = aggregate_times(n->lazy, rn->end - rn->start + 1);
                 if (node_non_trivial(rn)) {
                     rn->set_lazy(n->lazy);
                 }
@@ -191,13 +191,13 @@ namespace gokul2411s {
         }
 
     Tmpl
-        U ClassTmpl::evaluate(U const & a, U const & b) const {
-            return evaluator_.evaluate(a, b);
+        U ClassTmpl::aggregate(U const & a, U const & b) const {
+            return aggregator_.aggregate(a, b);
         }
     
     Tmpl
-        U ClassTmpl::evaluate_times(U const & a, size_t times) const {
-            return evaluator_.evaluate_times(a, times);
+        U ClassTmpl::aggregate_times(U const & a, size_t times) const {
+            return aggregator_.aggregate_times(a, times);
         }
 
     Tmpl
