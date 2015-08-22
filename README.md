@@ -8,6 +8,7 @@ The implementation provided has the following runtimes.
  * Constructing a segment tree - O(n)
  * Querying for the aggregate in a range - O(log n)
  * Overwriting all elements of a range to a value - O(log n)
+ * Incrementing all elements of a range to a value - O(log n)
 
 Range updates are made possible in O(log n) time using a method called lazy propagation.
 
@@ -52,6 +53,9 @@ gokul2411s::Segtree<Type, Type, SumAggregator> ss(a, a+5, SumAggregator() /* opt
 // Next we overwrite each element in the range [2, 3] to 5.
 ss.overwrite(2, 3, 5);
 
-// And then we query for the sum in the range[0, 4], which should return 18 ( = 1 + 2 + 5 + 5 + 5).
+// Next we increment each element in the range [2, 4] by 3.
+ss.increment(2, 4, 3);
+
+// And then we query for the sum in the range[0, 4], which should return 27 ( = 1 + 2 + 8 + 8 + 8).
 ss.query(0, 4);
 ```
