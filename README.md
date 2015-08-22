@@ -16,25 +16,25 @@ The class SegTree, available within the gokul2411s namespace is defined in segtr
 
  * the type of object contained in the original iterable
  * the type of aggregate requested in queries (this allows aggregates to have a different type)
- * the type of evaluator, a class that defines how an aggregator works. The following shows a short code snippet.
+ * the type of aggregator, a class that defines how an aggregator works. The following shows a short code snippet.
 
 ```
 #define Type int
 
-struct SumEvaluator {
-    // Evaluates the result of aggregating two elements.
-    Type evaluate(Type const & a, Type const & b) const {
+struct SumAggregator {
+    // Returns the result of aggregating two elements.
+    Type aggregate(Type const & a, Type const & b) const {
         return a + b;
     }
 
-    // Evaluates the result of apply the aggregation to the input n times.
+    // Returns the result of aggregating the input to itself n times.
     // For min and max, the output would be just the input itself.
     // For products, the output would be the nth power of the input.
-    Type evaluate_times(Type const & a, size_t n) const {
+    Type aggregate_times(Type const & a, size_t n) const {
         return a * n;
     }
 
-    // Returns a null element.
+    // Returns the null element.
     // For max you would most likely use std::numeric_limits<Type>::min().
     // For min you would most likely use std::numeric_limits<Type>::max().
     // For products you would most likely use 1.
@@ -47,7 +47,7 @@ struct SumEvaluator {
 Type a[5] = {1, 2, 3, 4, 5};
 
 // Here we create a segment tree.
-gokul2411s::Segtree<Type, Type, SumEvaluator> ss(a, a+5, SumEvaluator() /* optional */);
+gokul2411s::Segtree<Type, Type, SumAggregator> ss(a, a+5, SumAggregator() /* optional */);
 
 // Next we update each element in the range [2, 3] to 5.
 ss.update(2, 3, 5);
