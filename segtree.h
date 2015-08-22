@@ -16,60 +16,198 @@ namespace gokul2411s {
     Tmpl
         class Class {
             public:
+                /**
+                 * Constructs a segment tree using the given iterable range and aggregator object.
+                 */
                 Tmpl2 Class(Iterator begin, Iterator end, Aggregator const & aggregator = Aggregator());
+
+                /**
+                 * Destructs the segment tree.
+                 */
                 ~Class();
-                U query(size_t start, size_t end);
-                void overwrite(size_t pos, T val);
+
+                /**
+                 * Returns the aggregated result in the closed range [l, r].
+                 */
+                U query(size_t l, size_t r);
+
+                /**
+                 * Overwrites all elements of the closed range [l, r] with the given value.
+                 */
                 void overwrite(size_t l, size_t r, T val);
+
+                /**
+                 * Increments all elements of the the closed range [l, r] with the given value.
+                 */
+                void increment(size_t l, size_t r, T val);
             private:
-                enum LazyType {
-                    NONE,
+                enum UpdateType {
                     OVERWRITE,
                     INCREMENT
                 };
-
+                
+                /**
+                 * Encapsulates a value and a closed range for which that value applies.
+                 *
+                 * Also maintains two objects (one for overwrite updates and another for
+                 * increment updates) that are used to propagate updates to children nodes lazily.
+                 */
                 struct Node {
                     U val;
                     size_t start;
                     size_t end;
-                    T lazy;
-                    LazyType lazy_type;
+                    T overwrite_lazy; 
+                    T increment_lazy;
+                    bool has_overwrite_lazy;
+                    bool has_increment_lazy;
 
+                    /**
+                     * Constructs a node with the given value and the closed range.
+                     */
                     Node(U val, size_t start, size_t end) {
                         this->val = val;
                         this->start = start;
                         this->end = end;
-                        lazy = 0;
-                        lazy_type = NONE;
+                        overwrite_lazy = 0;
+                        increment_lazy = 0;
+                        has_overwrite_lazy = false;
+                        has_increment_lazy = false;
                     }
 
-                    void set_lazy(T lazy, LazyType lazy_type) {
-                        this->lazy = lazy;
-                        this->lazy_type = lazy_type;
+                    /**
+                     * Sets the overwrite lazy object, invalidating the increment lazy object.
+                     */
+                    void set_overwrite_lazy(T lazy) {
+                        overwrite_lazy = lazy;
+                        has_overwrite_lazy = true;
+                        
+                        increment_lazy = 0;
+                        has_increment_lazy = false;
                     }
 
+                    /**
+                     * Adds to the increment lazy object.
+                     */
+                    void add_increment_lazy(T lazy) {
+                        increment_lazy += lazy;
+                        has_increment_lazy = true;
+                    }
+
+                    /**
+                     * Resets the lazy objects back to zero.
+                     */
                     void reset_lazy() {
-                        lazy_type = NONE;
+                        overwrite_lazy = 0;
+                        has_overwrite_lazy = false;
+                        
+                        increment_lazy = 0;
+                        has_increment_lazy = false;
                     }
                 };
                 
                 size_t tree_size_;
                 char * pool_;
                 Aggregator aggregator_;
+
+                /**
+                 * Recursively builds the segment tree under the node representing the
+                 * closed range [l, r], and places that node at the given index.
+                 */
                 Tmpl2 U build(Iterator begin, Iterator end, size_t l, size_t r, size_t index);
-                U query(size_t start, size_t end, size_t index);
-                void overwrite(size_t l, size_t r, T val, size_t index);
+                
+                /**
+                 * Recursively queries the segment tree under the node placed at the
+                 * index for its contribution towards the aggregate result of the
+                 * closed range [l, r].
+                 */
+                U query(size_t l, size_t r, size_t index);
+
+                /**
+                 * Recursively updates (overwrites or increments as specified by the update type)
+                 * the segment tree using the given value under the node placed at the index,
+                 * for any overlap it may have with the closed range [l, r]. 
+                 */
+                void update(size_t l, size_t r, T val, size_t index, UpdateType update_type);
+
+                /**
+                 * Applies any lazy objects from the given node to its children, if any. This also
+                 * propagates the lazy objects to the children.
+                 */
                 void propagate_lazy(size_t index, Node * n);
-                void apply_lazy(Node * n, T lazy, LazyType lazy_type);
+
+                /**
+                 * Applies overwrite on the node based on the given value and sets the node's lazy accordingly.
+                 */
+                void apply_overwrite_and_lazy(Node * n, T val);
+
+                /**
+                 * Applies increment on the node based on the given value and sets the node's lazy accordingly.
+                 */
+                void apply_increment_and_lazy(Node * n, T val);
+
+                /**
+                 * Applies overwrite on the node based on the given value.
+                 */
+                void apply_overwrite(Node * n, T val);
+                
+                /**
+                 * Applies increment on the node based on the given value.
+                 */
+                void apply_increment(Node * n, T val);
+
+                /**
+                 * Gets the node placed at the index.
+                 */
                 inline Node * get_node(size_t index);
+
+                /**
+                 * Gets the size of the array required to represent the segment tree. This computation
+                 * is required since the segment tree is not truly a complete tree, but rather an
+                 * almost complete tree.
+                 */
                 size_t tree_size(size_t num_items) const;
+
+                /**
+                 * Counts the number of elements in the specified closed range [start, end].
+                 */
                 inline size_t get_range_count(size_t start, size_t end) const;
+
+                /**
+                 * Wraps the two-element aggregation method provided by the aggregator.
+                 */
                 inline U aggregate(U const & a, U const & b) const;
+
+                /**
+                 * Wraps the n-times aggregation method provided by the aggregator.
+                 */
                 inline U aggregate_times(U const & a, size_t times) const;
+
+                /**
+                 * Gets the index of the left child of the node placed at index.
+                 */
                 inline size_t get_lindex(size_t index) const;
+
+                /**
+                 * Get the index of the right child of the node placed at index.
+                 */
                 inline size_t get_rindex(size_t index) const;
+
+                /**
+                 * Gets if a node is non-trivial i.e. if the closed range that it represents
+                 * contains more than one element.
+                 */
                 inline bool node_non_trivial(Node const * n) const;
+
+                /**
+                 * Checks if the closed range represented by the node placed at index
+                 * falls completely outside the closed range [l, r].
+                 */
                 inline bool node_outside_range(Node const * n, size_t l, size_t r) const;
+
+                /**
+                 * Checks if the closed range represented by the node placed at index
+                 * falls completely inside the closed range [l, r].
+                 */
                 inline bool node_within_range(Node const * n, size_t l, size_t r) const;
         };
 
@@ -101,13 +239,13 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::overwrite(size_t pos, T val) {
-            overwrite(pos, pos, val, 0);
+        void ClassTmpl::overwrite(size_t l, size_t r, T val) {
+            update(l, r, val, 0, OVERWRITE);
         }
 
     Tmpl
-        void ClassTmpl::overwrite(size_t l, size_t r, T val) {
-            overwrite(l, r, val, 0);
+        void ClassTmpl::increment(size_t l, size_t r, T val) {
+            update(l, r, val, 0, INCREMENT);
         }
 
     Tmpl
@@ -142,7 +280,7 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::overwrite(size_t l, size_t r, T val, size_t index) {
+        void ClassTmpl::update(size_t l, size_t r, T val, size_t index, UpdateType update_type) {
             Node * n = get_node(index);
             if (node_outside_range(n, l, r)) {
                 return; // noop
@@ -151,16 +289,17 @@ namespace gokul2411s {
             propagate_lazy(index, n);
 
             if (node_within_range(n, l, r)) {
-                n->val = aggregate_times(val, get_range_count(n->start, n->end));
-                if (node_non_trivial(n)) {
-                    n->set_lazy(val, OVERWRITE);
+                if (update_type == OVERWRITE) {
+                    apply_overwrite_and_lazy(n, val);
+                } else {
+                    apply_increment_and_lazy(n, val);
                 }
             } else {
                 // node is non-trivial
                 size_t lindex = get_lindex(index);
                 size_t rindex = get_rindex(index);
-                overwrite(l, r, val, lindex);
-                overwrite(l, r, val, rindex);
+                update(l, r, val, lindex, update_type);
+                update(l, r, val, rindex, update_type);
 
                 Node * ln = get_node(lindex); 
                 Node * rn = get_node(rindex); 
@@ -170,30 +309,51 @@ namespace gokul2411s {
 
     Tmpl
         void ClassTmpl::propagate_lazy(size_t index, Node * n) {
-            if (n->lazy_type != NONE) {
-                Node * ln = get_node(get_lindex(index));
-                apply_lazy(ln, n->lazy, n->lazy_type);
-                
-                Node * rn = get_node(get_rindex(index));
-                apply_lazy(rn, n->lazy, n->lazy_type);
-                
-                n->reset_lazy();
+            if (!node_non_trivial(n)) {
+                return;
+            }
+
+            Node * ln = get_node(get_lindex(index));
+            Node * rn = get_node(get_rindex(index));
+            if (n->has_overwrite_lazy) {
+                apply_overwrite_and_lazy(ln, n->overwrite_lazy);
+                apply_overwrite_and_lazy(rn, n->overwrite_lazy);
+            }
+
+            if (n->has_increment_lazy) {
+                apply_increment_and_lazy(ln, n->increment_lazy); 
+                apply_increment_and_lazy(rn, n->increment_lazy); 
+            }
+            
+            n->reset_lazy();
+        }
+
+    Tmpl
+        void ClassTmpl::apply_overwrite_and_lazy(Node * n, T val) {
+            apply_overwrite(n, val);
+            if (node_non_trivial(n)) {
+                n->set_overwrite_lazy(val);
             }
         }
 
     Tmpl
-        void ClassTmpl::apply_lazy(Node * n, T lazy, LazyType lazy_type) {
-            U patch = aggregate_times(lazy, get_range_count(n->start, n->end));
-            if (lazy_type == OVERWRITE) {
-                n->val = patch; 
-            } else if (lazy_type == INCREMENT) {
-                n->val += patch;
-            }
+        void ClassTmpl::apply_increment_and_lazy(Node * n, T val) {
+            apply_increment(n, val);
             if (node_non_trivial(n)) {
-                n->set_lazy(lazy, lazy_type);
+                n->add_increment_lazy(val);
             }
         }
 
+    Tmpl
+        void ClassTmpl::apply_overwrite(Node * n, T val) {
+            n->val = aggregate_times(val, get_range_count(n->start, n->end));
+        }
+
+    Tmpl
+        void ClassTmpl::apply_increment(Node * n, T val) {
+            n->val += aggregate_times(val, get_range_count(n->start, n->end));
+        }
+    
     Tmpl
         typename ClassTmpl::Node * ClassTmpl::get_node(size_t index) {
             return (Node*)pool_ + index;
