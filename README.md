@@ -19,6 +19,8 @@ The class SegTree, available within the gokul2411s namespace is defined in segtr
  * the type of evaluator, a class that defines how an aggregator works. The following shows a short code snippet.
 
 ```
+#define Type int
+
 struct SumEvaluator {
     // Evaluates the result of aggregating two elements.
     Type evaluate(Type const & a, Type const & b) const {
@@ -41,8 +43,8 @@ struct SumEvaluator {
     }
 };
 
-// Here is out source iterable (in this case an array).
-int a[5] = {1, 2, 3, 4, 5};
+// Here is our source iterable (in this case an array).
+Type a[5] = {1, 2, 3, 4, 5};
 
 // Here we create a segment tree.
 gokul2411s::Segtree<Type, Type, SumEvaluator> ss(a, a+5, SumEvaluator() /* optional */);
