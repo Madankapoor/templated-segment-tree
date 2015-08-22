@@ -1,2 +1,55 @@
 # templated-segment-tree
-A templated C++ implementation of segment trees which can work for common functions such as sum, product, min and max.
+
+## Introduction
+This repo includes a templated C++ implementation of segment trees which can work for common aggregation functions such as sum, product, min and max. Segment trees are very fast for finding range aggregates on a iterable object (such as an array), while allowing for range updates. The only constraint is that the number of elements in the iterable should remain fixed.
+
+## Time complexity
+The implementation provided has the following runtimes.
+ * Constructing a segment tree - O(n)
+ * Querying for the aggregate in a range - O(log n)
+ * Updating all elements of a range to a value - O(log n)
+
+Range updates are made possible in O(log n) time using a method called lazy propagation.
+
+## Implementation and usage
+The class SegTree, available within the gokul2411s namespace is defined in segtree.h. It is templated on three parameters.
+
+ * the type of object contained in the original iterable
+ * the type of aggregate requested in queries (this allows aggregates to have a different type)
+ * the type of evaluator, a class that defines how an aggregator works. The following shows a short code snippet.
+
+```
+struct SumEvaluator {
+    // Evaluates the result of aggregating two elements.
+    Type evaluate(Type const & a, Type const & b) const {
+        return a + b;
+    }
+
+    // Evaluates the result of apply the aggregation to the input n times.
+    // For min and max, the output would be just the input itself.
+    // For products, the output would be the nth power of the input.
+    Type evaluate_times(Type const & a, size_t n) const {
+        return a * n;
+    }
+
+    // Returns a null element.
+    // For max you would most likely use std::numeric_limits<Type>::min().
+    // For min you would most likely use std::numeric_limits<Type>::max().
+    // For products you would most likely use 1.
+    Type null() const {
+        return 0;
+    }
+};
+
+// Here is out source iterable (in this case an array).
+int a[5] = {1, 2, 3, 4, 5};
+
+// Here we create a segment tree.
+gokul2411s::Segtree<Type, Type, SumEvaluator> ss(a, a+5, SumEvaluator() /* optional */);
+
+// Next we update each element in the range [2, 3] to 5.
+ss.update(2, 3, 5);
+
+// And then we query for the sum in the range[0, 4], which should return 18 ( = 1 + 2 + 5 + 5 + 5).
+ss.query(0, 4);
+```
