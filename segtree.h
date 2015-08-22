@@ -19,30 +19,37 @@ namespace gokul2411s {
                 Tmpl2 Class(Iterator begin, Iterator end, Aggregator const & aggregator = Aggregator());
                 ~Class();
                 U query(size_t start, size_t end);
-                void update(size_t pos, T val);
-                void update(size_t l, size_t r, T val);
+                void overwrite(size_t pos, T val);
+                void overwrite(size_t l, size_t r, T val);
             private:
+                enum LazyType {
+                    NONE,
+                    OVERWRITE,
+                    INCREMENT
+                };
+
                 struct Node {
                     U val;
                     size_t start;
                     size_t end;
                     T lazy;
-                    bool has_lazy;
+                    LazyType lazy_type;
+
                     Node(U val, size_t start, size_t end) {
                         this->val = val;
                         this->start = start;
                         this->end = end;
-                        this->lazy = 0;
-                        this->has_lazy = false;
+                        lazy = 0;
+                        lazy_type = NONE;
                     }
 
-                    void set_lazy(T lazy) {
+                    void set_lazy(T lazy, LazyType lazy_type) {
                         this->lazy = lazy;
-                        has_lazy = true;
+                        this->lazy_type = lazy_type;
                     }
 
                     void reset_lazy() {
-                        has_lazy = false;
+                        lazy_type = NONE;
                     }
                 };
                 
@@ -51,9 +58,9 @@ namespace gokul2411s {
                 Aggregator aggregator_;
                 Tmpl2 U build(Iterator begin, Iterator end, size_t l, size_t r, size_t index);
                 U query(size_t start, size_t end, size_t index);
-                void update(size_t l, size_t r, T val, size_t index);
+                void overwrite(size_t l, size_t r, T val, size_t index);
                 void propagate_lazy(size_t index, Node * n);
-                void apply_lazy(Node * n, T lazy);
+                void apply_lazy(Node * n, T lazy, LazyType lazy_type);
                 inline Node * get_node(size_t index);
                 size_t tree_size(size_t num_items) const;
                 inline size_t get_range_count(size_t start, size_t end) const;
@@ -94,13 +101,13 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::update(size_t pos, T val) {
-            update(pos, pos, val, 0);
+        void ClassTmpl::overwrite(size_t pos, T val) {
+            overwrite(pos, pos, val, 0);
         }
 
     Tmpl
-        void ClassTmpl::update(size_t l, size_t r, T val) {
-            update(l, r, val, 0);
+        void ClassTmpl::overwrite(size_t l, size_t r, T val) {
+            overwrite(l, r, val, 0);
         }
 
     Tmpl
@@ -135,7 +142,7 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::update(size_t l, size_t r, T val, size_t index) {
+        void ClassTmpl::overwrite(size_t l, size_t r, T val, size_t index) {
             Node * n = get_node(index);
             if (node_outside_range(n, l, r)) {
                 return; // noop
@@ -146,14 +153,14 @@ namespace gokul2411s {
             if (node_within_range(n, l, r)) {
                 n->val = aggregate_times(val, get_range_count(n->start, n->end));
                 if (node_non_trivial(n)) {
-                    n->set_lazy(val);
+                    n->set_lazy(val, OVERWRITE);
                 }
             } else {
                 // node is non-trivial
                 size_t lindex = get_lindex(index);
                 size_t rindex = get_rindex(index);
-                update(l, r, val, lindex);
-                update(l, r, val, rindex);
+                overwrite(l, r, val, lindex);
+                overwrite(l, r, val, rindex);
 
                 Node * ln = get_node(lindex); 
                 Node * rn = get_node(rindex); 
@@ -163,22 +170,27 @@ namespace gokul2411s {
 
     Tmpl
         void ClassTmpl::propagate_lazy(size_t index, Node * n) {
-            if (n->has_lazy) {
+            if (n->lazy_type != NONE) {
                 Node * ln = get_node(get_lindex(index));
-                apply_lazy(ln, n->lazy);
+                apply_lazy(ln, n->lazy, n->lazy_type);
                 
                 Node * rn = get_node(get_rindex(index));
-                apply_lazy(rn, n->lazy);
+                apply_lazy(rn, n->lazy, n->lazy_type);
                 
                 n->reset_lazy();
             }
         }
 
     Tmpl
-        void ClassTmpl::apply_lazy(Node * n, T lazy) {
-            n->val = aggregate_times(lazy, get_range_count(n->start, n->end));
+        void ClassTmpl::apply_lazy(Node * n, T lazy, LazyType lazy_type) {
+            U patch = aggregate_times(lazy, get_range_count(n->start, n->end));
+            if (lazy_type == OVERWRITE) {
+                n->val = patch; 
+            } else if (lazy_type == INCREMENT) {
+                n->val += patch;
+            }
             if (node_non_trivial(n)) {
-                n->set_lazy(lazy);
+                n->set_lazy(lazy, lazy_type);
             }
         }
 
