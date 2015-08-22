@@ -36,9 +36,13 @@ namespace gokul2411s {
                         this->has_lazy = false;
                     }
 
-                    void set_lazy(T lazy, bool reset = false) {
+                    void set_lazy(T lazy) {
                         this->lazy = lazy;
-                        has_lazy = !reset;
+                        has_lazy = true;
+                    }
+
+                    void reset_lazy() {
+                        has_lazy = false;
                     }
                 };
                 
@@ -48,9 +52,11 @@ namespace gokul2411s {
                 Tmpl2 U build(Iterator begin, Iterator end, size_t l, size_t r, size_t index);
                 U query(size_t start, size_t end, size_t index);
                 void update(size_t l, size_t r, T val, size_t index);
-                void apply_lazy(size_t index, Node * n);
+                void propagate_lazy(size_t index, Node * n);
+                void apply_lazy(Node * n, T lazy);
                 inline Node * get_node(size_t index);
                 size_t tree_size(size_t num_items) const;
+                inline size_t get_range_count(size_t start, size_t end) const;
                 inline U aggregate(U const & a, U const & b) const;
                 inline U aggregate_times(U const & a, size_t times) const;
                 inline size_t get_lindex(size_t index) const;
@@ -119,7 +125,7 @@ namespace gokul2411s {
                 return aggregator_.null();
             }
 
-            apply_lazy(index, n);
+            propagate_lazy(index, n);
 
             if (node_within_range(n, l, r)) {
                 return n->val;
@@ -135,10 +141,10 @@ namespace gokul2411s {
                 return; // noop
             }
 
-            apply_lazy(index, n);
+            propagate_lazy(index, n);
 
             if (node_within_range(n, l, r)) {
-                n->val = aggregate_times(val, n->end - n->start + 1);
+                n->val = aggregate_times(val, get_range_count(n->start, n->end));
                 if (node_non_trivial(n)) {
                     n->set_lazy(val);
                 }
@@ -156,19 +162,23 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::apply_lazy(size_t index, Node * n) {
+        void ClassTmpl::propagate_lazy(size_t index, Node * n) {
             if (n->has_lazy) {
                 Node * ln = get_node(get_lindex(index));
-                ln->val = aggregate_times(n->lazy, ln->end - ln->start + 1);
-                if (node_non_trivial(ln)) {
-                    ln->set_lazy(n->lazy);
-                }
+                apply_lazy(ln, n->lazy);
+                
                 Node * rn = get_node(get_rindex(index));
-                rn->val = aggregate_times(n->lazy, rn->end - rn->start + 1);
-                if (node_non_trivial(rn)) {
-                    rn->set_lazy(n->lazy);
-                }
-                n->set_lazy(0, true);
+                apply_lazy(rn, n->lazy);
+                
+                n->reset_lazy();
+            }
+        }
+
+    Tmpl
+        void ClassTmpl::apply_lazy(Node * n, T lazy) {
+            n->val = aggregate_times(lazy, get_range_count(n->start, n->end));
+            if (node_non_trivial(n)) {
+                n->set_lazy(lazy);
             }
         }
 
@@ -188,6 +198,11 @@ namespace gokul2411s {
             }
 
             return 2 * psz - 1;
+        }
+
+    Tmpl
+        size_t ClassTmpl::get_range_count(size_t start, size_t end) const {
+            return end - start + 1;
         }
 
     Tmpl
