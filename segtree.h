@@ -34,12 +34,12 @@ namespace gokul2411s {
                 /**
                  * Overwrites all elements of the closed range [l, r] with the given value.
                  */
-                void overwrite(size_t l, size_t r, T val);
+                void overwrite(size_t l, size_t r, T const & val);
 
                 /**
                  * Increments all elements of the the closed range [l, r] with the given value.
                  */
-                void increment(size_t l, size_t r, T val);
+                void increment(size_t l, size_t r, T const & val);
             private:
                 enum UpdateType {
                     OVERWRITE,
@@ -64,7 +64,7 @@ namespace gokul2411s {
                     /**
                      * Constructs a node with the given value and the closed range.
                      */
-                    Node(U val, size_t start, size_t end) {
+                    Node(U const & val, size_t start, size_t end) {
                         this->val = val;
                         this->start = start;
                         this->end = end;
@@ -77,7 +77,7 @@ namespace gokul2411s {
                     /**
                      * Sets the overwrite lazy object, invalidating the increment lazy object.
                      */
-                    void set_overwrite_lazy(T lazy) {
+                    void set_overwrite_lazy(T const & lazy) {
                         overwrite_lazy = lazy;
                         has_overwrite_lazy = true;
                         
@@ -88,7 +88,7 @@ namespace gokul2411s {
                     /**
                      * Adds to the increment lazy object.
                      */
-                    void add_increment_lazy(T lazy) {
+                    void add_increment_lazy(T const & lazy) {
                         increment_lazy += lazy;
                         has_increment_lazy = true;
                     }
@@ -127,7 +127,7 @@ namespace gokul2411s {
                  * the segment tree using the given value under the node placed at the index,
                  * for any overlap it may have with the closed range [l, r]. 
                  */
-                void update(size_t l, size_t r, T val, size_t index, UpdateType update_type);
+                void update(size_t l, size_t r, T const & val, size_t index, UpdateType update_type);
 
                 /**
                  * Applies any lazy objects from the given node to its children, if any. This also
@@ -138,22 +138,27 @@ namespace gokul2411s {
                 /**
                  * Applies overwrite on the node based on the given value and sets the node's lazy accordingly.
                  */
-                void apply_overwrite_and_lazy(Node * n, T val);
+                void apply_overwrite_and_lazy(Node * n, T const & val);
 
                 /**
                  * Applies increment on the node based on the given value and sets the node's lazy accordingly.
                  */
-                void apply_increment_and_lazy(Node * n, T val);
+                void apply_increment_and_lazy(Node * n, T const & val);
+
+                /**
+                 * Gets the update that would be applied on the node.
+                 */
+                U get_update_value(Node const * n, T const & val) const;
 
                 /**
                  * Applies overwrite on the node based on the given value.
                  */
-                void apply_overwrite(Node * n, T val);
+                void apply_overwrite(Node * n, T const & val);
                 
                 /**
                  * Applies increment on the node based on the given value.
                  */
-                void apply_increment(Node * n, T val);
+                void apply_increment(Node * n, T const & val);
 
                 /**
                  * Gets the node placed at the index.
@@ -239,12 +244,12 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::overwrite(size_t l, size_t r, T val) {
+        void ClassTmpl::overwrite(size_t l, size_t r, T const & val) {
             update(l, r, val, 0, OVERWRITE);
         }
 
     Tmpl
-        void ClassTmpl::increment(size_t l, size_t r, T val) {
+        void ClassTmpl::increment(size_t l, size_t r, T const & val) {
             update(l, r, val, 0, INCREMENT);
         }
 
@@ -280,7 +285,7 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::update(size_t l, size_t r, T val, size_t index, UpdateType update_type) {
+        void ClassTmpl::update(size_t l, size_t r, T const & val, size_t index, UpdateType update_type) {
             Node * n = get_node(index);
             if (node_outside_range(n, l, r)) {
                 return; // noop
@@ -329,7 +334,7 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::apply_overwrite_and_lazy(Node * n, T val) {
+        void ClassTmpl::apply_overwrite_and_lazy(Node * n, T const & val) {
             apply_overwrite(n, val);
             if (node_non_trivial(n)) {
                 n->set_overwrite_lazy(val);
@@ -337,7 +342,7 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::apply_increment_and_lazy(Node * n, T val) {
+        void ClassTmpl::apply_increment_and_lazy(Node * n, T const & val) {
             apply_increment(n, val);
             if (node_non_trivial(n)) {
                 n->add_increment_lazy(val);
@@ -345,13 +350,18 @@ namespace gokul2411s {
         }
 
     Tmpl
-        void ClassTmpl::apply_overwrite(Node * n, T val) {
-            n->val = aggregate_times(val, get_range_count(n->start, n->end));
+        U ClassTmpl::get_update_value(Node const * n, T const & val) const {
+            return aggregate_times(val, get_range_count(n->start, n->end));
         }
 
     Tmpl
-        void ClassTmpl::apply_increment(Node * n, T val) {
-            n->val += aggregate_times(val, get_range_count(n->start, n->end));
+        void ClassTmpl::apply_overwrite(Node * n, T const & val) {
+            n->val = get_update_value(n, val);
+        }
+
+    Tmpl
+        void ClassTmpl::apply_increment(Node * n, T const & val) {
+            n->val += get_update_value(n, val);
         }
     
     Tmpl
