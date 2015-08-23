@@ -5,8 +5,6 @@
 
 #include <stdlib.h>
 
-#define pr std::cout
-#define nl std::endl
 #define Tmpl template<typename T, typename U, typename Aggregator>
 #define Tmpl2 template<typename Iterator>
 #define Class Segtree
@@ -293,6 +291,9 @@ namespace gokul2411s {
             propagate_lazy(index, n);
 
             if (node_within_range(n, l, r)) {
+                // prefer if loop over function pointers, since most users will either call one of either increment
+                // or update most of the time, and the processor will be able to guess well. function pointers will
+                // also screw up with the compiler's optimization mechanisms.
                 if (update_type == OVERWRITE) {
                     apply_overwrite_and_lazy(n, val);
                 } else {
