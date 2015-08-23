@@ -64,15 +64,14 @@ namespace gokul2411s {
                     /**
                      * Constructs a node with the given value and the closed range.
                      */
-                    Node(U const & val, size_t start, size_t end) {
-                        this->val = val;
-                        this->start = start;
-                        this->end = end;
-                        overwrite_lazy = 0;
-                        increment_lazy = 0;
-                        has_overwrite_lazy = false;
-                        has_increment_lazy = false;
-                    }
+                    Node(U const & nval, size_t nstart, size_t nend) :
+                        val(nval),
+                        start(nstart),
+                        end(nend),
+                        overwrite_lazy(0),
+                        increment_lazy(0),
+                        has_overwrite_lazy(false),
+                        has_increment_lazy(false) {}
 
                     /**
                      * Sets the overwrite lazy object, invalidating the increment lazy object.
