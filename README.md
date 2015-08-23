@@ -59,3 +59,11 @@ ss.increment(2, 4, 3);
 // And then we query for the sum in the range[0, 4], which should return 27 ( = 1 + 2 + 8 + 8 + 8).
 ss.query(0, 4);
 ```
+## Applicability
+Lots of programming competitions assume that you know about segment trees. While writing one from scratch is a great learning experience, it can be cumbersome to get perfectly right the very first time, especially under the context of a time crunch. This implementation is well tested and can be used out of the box, saving users a lot of time. 
+
+## Future work
+This implementation is very powerful and fast. However, it does not solve all problems solvable using a segment tree. Two immediate issues can be seen. If you see any more, please contact me, and give me your inputs. I am all ears.
+
+ * Segment trees can also handle range updates with some fixed function over the range, rather than just a constant.
+ * Range minimum / maximum queries can be handled even faster than by using a segment tree. Segment trees will still be powerful in practice, but can be beaten in some adversarial scenarios.
