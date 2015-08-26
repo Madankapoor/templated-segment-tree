@@ -5,25 +5,26 @@
 
 #include <stdlib.h>
 
-#include "segtree.h"
+#include "updatable_segtree.h"
 
 #define ArrayBasedSegtreeTmplParamSpec template<typename T, typename U, typename Aggregator>
 #define ArrayBasedSegtreeTmpl ArrayBasedSegtree<T, U, Aggregator>
-#define ParentTmpl Segtree<T, U, Aggregator>
+#define UpdatableSegtreeTmpl UpdatableSegtree<T, U, Aggregator>
+#define SegtreeTmpl Segtree<T, U, Aggregator>
 
 namespace gokul2411s {
     ArrayBasedSegtreeTmplParamSpec
-        class ArrayBasedSegtree : public ParentTmpl {
+        class ArrayBasedSegtree : public UpdatableSegtreeTmpl {
             public:
                 template<typename Iterator> ArrayBasedSegtree(Iterator begin, Iterator end, Aggregator const & aggregator);
                 ~ArrayBasedSegtree();
             protected:
-                using typename ParentTmpl::Node;
-                struct WrappedNode : public Node {
+                using typename UpdatableSegtreeTmpl::UpdatableNode;
+                struct WrappedNode : public UpdatableNode {
                     size_t index;
 
                     WrappedNode(U const & val, size_t start, size_t end, size_t indexx) :
-                        Node(val, start, end), index(indexx) {}
+                        UpdatableNode(val, start, end), index(indexx) {}
                 };
 
                 size_t tree_size_;
@@ -76,14 +77,15 @@ namespace gokul2411s {
                     }
                     return new (get_node(index)) WrappedNode(val, l, r, index);
                 }
-                
+
                 /**
                  * Gets the node placed at the index.
                  */
                 WrappedNode * get_node(size_t index) {
                     return (WrappedNode*)pool_ + index;
                 }
-
+                
+                using typename SegtreeTmpl::Node;
                 Node * get_left_child(Node * n) {
                     if (n->end > n->start) {
                         return get_node(get_lindex(static_cast<WrappedNode*>(n)->index));
@@ -103,10 +105,10 @@ namespace gokul2411s {
 
     ArrayBasedSegtreeTmplParamSpec
         template<typename Iterator> ArrayBasedSegtreeTmpl::ArrayBasedSegtree(Iterator begin, Iterator end, Aggregator const & aggregator)
-        : ParentTmpl(aggregator), tree_size_(tree_size(end - begin)) {
+        : UpdatableSegtreeTmpl(aggregator), tree_size_(tree_size(end - begin)) {
             size_t l = 0, r = end - begin - 1;
-	    pool_ = (char *)calloc(tree_size_, sizeof(WrappedNode));
-	    this->root_ = build(begin, end, l, r);
+            pool_ = (char *)calloc(tree_size_, sizeof(WrappedNode));
+            this->root_ = build(begin, end, l, r);
         }
 
     ArrayBasedSegtreeTmplParamSpec
