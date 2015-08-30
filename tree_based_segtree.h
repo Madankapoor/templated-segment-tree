@@ -8,12 +8,12 @@
 
 #include "segtree.h"
 
-#define TreeBasedSegtreeTmplParamSpec template<typename T, typename U, typename Aggregator>
-#define TreeBasedSegtreeTmpl TreeBasedSegtree<T, U, Aggregator>
-#define SegtreeTmpl Segtree<T, U, Aggregator>
-#define PAIR(T) std::pair<T, T>
+#define TreeBasedSegtreeTmplParamSpec template<typename Item, typename Aggregate, typename Aggregator>
+#define TreeBasedSegtreeTmpl TreeBasedSegtree<Item, Aggregate, Aggregator>
+#define SegtreeTmpl Segtree<Aggregate, Aggregator>
+#define PAIR(a) std::pair<a, a>
 #define MEMO std::map<PAIR(size_t), WrappedNode*>
-#define ITEMCPY std::vector<T>
+#define ITEMCPY std::vector<Item>
 
 namespace gokul2411s {
     TreeBasedSegtreeTmplParamSpec
@@ -21,7 +21,7 @@ namespace gokul2411s {
             public:
                 template<typename Iterator> TreeBasedSegtree(Iterator begin, Iterator end, Aggregator const & aggregator);
                 ~TreeBasedSegtree();
-                void push(T const & val);
+                void push(Item const & val);
                 void pop();
             protected:
                 using typename SegtreeTmpl::Node;
@@ -30,7 +30,7 @@ namespace gokul2411s {
                     WrappedNode * right;
                     size_t reference_count;
 
-                    WrappedNode(U const & val, size_t start, size_t end, WrappedNode * leftt, WrappedNode * rightt) :
+                    WrappedNode(Aggregate const & val, size_t start, size_t end, WrappedNode * leftt, WrappedNode * rightt) :
                         Node(val, start, end),
                         left(leftt),
                         right(rightt),
@@ -48,7 +48,7 @@ namespace gokul2411s {
                         return memo_it->second;
                     }
 
-                    U val;
+                    Aggregate val;
                     WrappedNode * l_node = NULL, * r_node = NULL;
                     if (l == r) {
                         val = itemcpy_[l];
@@ -117,7 +117,7 @@ namespace gokul2411s {
         }
     
     TreeBasedSegtreeTmplParamSpec
-        void TreeBasedSegtreeTmpl::push(T const & val) {
+        void TreeBasedSegtreeTmpl::push(Item const & val) {
             size_++;
             build(0, size_ - 1);
             this->root_ = memo_.find(std::make_pair(0, size_ - 1))->second; 

@@ -1,39 +1,39 @@
-#ifndef UPDATABLE_SEGTREE_H_
-#define UPDATABLE_SEGTREE_H_
+#ifndef UPDATABLE_SEGTREE_ND_H_
+#define UPDATABLE_SEGTREE_ND_H_
 
 #include <stdlib.h>
 
-#include "segtree.h"
+#include "segtree_nd.h"
 
-#define UpdatableSegtreeTmplParamSpec template<typename Item, typename Aggregate, typename Aggregator>
-#define UpdatableSegtreeTmpl UpdatableSegtree<Item, Aggregate, Aggregator>
-#define SegtreeTmpl Segtree<Aggregate, Aggregator>
+#define UpdatableSegtreeNdTmplParamSpec template<typename Item, typename Aggregate, typename Aggregator, typename Point, size_t NumDims>
+#define UpdatableSegtreeNdTmpl UpdatableSegtreeNd<Item, Aggregate, Aggregator, Point, NumDims>
+#define SegtreeNdTmpl SegtreeNd<Aggregate, Aggregator, Point, NumDims>
 
 namespace gokul2411s {
-    UpdatableSegtreeTmplParamSpec
-        class UpdatableSegtree : public SegtreeTmpl {
+    UpdatableSegtreeNdTmplParamSpec
+        class UpdatableSegtreeNd : public SegtreeNdTmpl {
             public:
-                UpdatableSegtree(Aggregator const & aggregator) :
-                    SegtreeTmpl(aggregator) {}
+                UpdatableSegtreeNd(Aggregator const & aggregator) :
+                    SegtreeNdTmpl(aggregator) {}
 
-                virtual ~UpdatableSegtree() {}
+                virtual ~UpdatableSegtreeNd() {}
 
                 /**
                  * Overwrites all elements of the closed range [l, r] with the given value.
                  */
-                void overwrite(size_t l, size_t r, Item const & val);
+                void overwrite(Point const & l, Point const & r, Item const & val);
 
                 /**
                  * Increments all elements of the the closed range [l, r] with the given value.
                  */
-                void increment(size_t l, size_t r, Item const & val);
+                void increment(Point const & l, Point const & r, Item const & val);
             protected:
                 enum UpdateType {
                     OVERWRITE,
                     INCREMENT
                 };
 
-                using typename SegtreeTmpl::Node;
+                using typename SegtreeNdTmpl::Node;
                 /**
                  * Wraps the Node object with two objects, one for overwrite updates and another for
                  * increment updates that are used to propagate updates to children nodes lazily.
@@ -44,7 +44,7 @@ namespace gokul2411s {
                     bool has_overwrite_lazy;
                     bool has_increment_lazy;
 
-                    UpdatableNode(Aggregate const & val, size_t start, size_t end) :
+                    UpdatableNode(Aggregate const & val, Point const & start, Point const & end) :
                         Node(val, start, end),
                         overwrite_lazy(0),
                         increment_lazy(0),
@@ -110,7 +110,7 @@ namespace gokul2411s {
                  * Gets the update that would be applied on the node.
                  */
                 Aggregate get_update_value(UpdatableNode const * n, Item const & val) const {
-                    return this->aggregate_times(val, n->end - n->start + 1);
+                    return this->aggregate_times(val, n->size());
                 }
 
                 /**
@@ -136,16 +136,24 @@ namespace gokul2411s {
                         return;
                     }
 
-                    UpdatableNode * ln = cast(this->get_left_child(n));
-                    UpdatableNode * rn = cast(this->get_right_child(n));
                     if (n->has_overwrite_lazy) {
-                        apply_overwrite_and_lazy(ln, n->overwrite_lazy);
-                        apply_overwrite_and_lazy(rn, n->overwrite_lazy);
+                        for (size_t k = 0; k < SegtreeNdTmpl::NUM_CHILDREN; k++) {
+                            UpdatableNode * child_node = cast(this->get_child_node(n, k));
+                            if (child_node == NULL) {
+                                break;
+                            }
+                            apply_overwrite_and_lazy(child_node, n->overwrite_lazy);
+                        }
                     }
 
                     if (n->has_increment_lazy) {
-                        apply_increment_and_lazy(ln, n->increment_lazy); 
-                        apply_increment_and_lazy(rn, n->increment_lazy); 
+                        for (size_t k = 0; k < SegtreeNdTmpl::NUM_CHILDREN; k++) {
+                            UpdatableNode * child_node = cast(this->get_child_node(n, k));
+                            if (child_node == NULL) {
+                                break;
+                            }
+                            apply_increment_and_lazy(child_node, n->increment_lazy); 
+                        }
                     }
 
                     n->reset_lazy();
@@ -156,7 +164,7 @@ namespace gokul2411s {
                  * the segment tree using the given value under the node,
                  * for any overlap it may have with the closed range [l, r]. 
                  */
-                void update(size_t l, size_t r, Item const & val, UpdatableNode * n, UpdateType update_type) {
+                void update(Point const & l, Point const & r, Item const & val, UpdatableNode * n, UpdateType update_type) {
                     if (n->outside_range(l, r)) {
                         return; // noop
                     }
@@ -174,36 +182,40 @@ namespace gokul2411s {
                         }
                     } else {
                         // node is non-trivial
-                        UpdatableNode * ln = cast(this->get_left_child(n));
-                        UpdatableNode * rn = cast(this->get_right_child(n));
-                        update(l, r, val, ln, update_type);
-                        update(l, r, val, rn, update_type);
-                        n->val = this->aggregate(ln->val, rn->val);
+                        for (size_t k = 0; k < SegtreeNdTmpl::NUM_CHILDREN; k++) {
+                            UpdatableNode * child_node = cast(this->get_child_node(n, k));
+                            if (child_node == NULL) {
+                                break;
+                            }
+                            update(l, r, val, child_node, update_type);
+                        }
+                        n->val = this->get_children_aggregate(n);
                     }
                 }
                 
-                virtual Aggregate query_impl(size_t l, size_t r, Node * n) {
+                virtual Aggregate query_impl(Point const & l, Point const & r, Node * n) {
                     if (n->outside_range(l, r)) {
                         return this->aggregator_null();
                     }
 
                     propagate_lazy(cast(n));
-
+                    
+                    Aggregate ret;
                     if (n->within_range(l, r)) {
                         return n->val;
                     } else {
-                        return this->aggregate(query_impl(l, r, this->get_left_child(n)), query_impl(l, r, this->get_right_child(n)));
+                        return this->get_children_aggregate(n, l, r);
                     }
                 }
         };
 
-    UpdatableSegtreeTmplParamSpec 
-        void UpdatableSegtreeTmpl::overwrite(size_t l, size_t r, Item const & val) {
+    UpdatableSegtreeNdTmplParamSpec 
+        void UpdatableSegtreeNdTmpl::overwrite(Point const & l, Point const & r, Item const & val) {
             update(l, r, val, cast(this->root_), OVERWRITE);
         }
 
-    UpdatableSegtreeTmplParamSpec    
-        void UpdatableSegtreeTmpl::increment(size_t l, size_t r, Item const & val) {
+    UpdatableSegtreeNdTmplParamSpec    
+        void UpdatableSegtreeNdTmpl::increment(Point const & l, Point const & r, Item const & val) {
             update(l, r, val, cast(this->root_), INCREMENT);
         }
 }

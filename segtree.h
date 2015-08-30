@@ -6,13 +6,13 @@
 #include <stdlib.h>
 
 namespace gokul2411s {
-    template<typename T, typename U, typename Aggregator>
+    template<typename Aggregate, typename Aggregator>
         class Segtree {
             public:
                 /**
                  * Constructs a segment tree using the given iterable range and aggregator object.
                  */
-                Segtree(Aggregator const & aggregator = Aggregator()) :
+                Segtree(Aggregator const & aggregator) :
                     aggregator_(aggregator) {}
 
                 /**
@@ -23,7 +23,7 @@ namespace gokul2411s {
                 /**
                  * Returns the aggregated result in the closed range [l, r].
                  */
-                U query(size_t l, size_t r) {
+                Aggregate query(size_t l, size_t r) {
                     this->query_impl(l, r, root_);
                 }
 
@@ -32,14 +32,14 @@ namespace gokul2411s {
                  * Encapsulates a value and a closed range for which that value applies.
                  */
                 struct Node {
-                    U val;
+                    Aggregate val;
                     size_t start;
                     size_t end;
 
                     /**
                      * Constructs a node with the given value and the closed range.
                      */
-                    Node(U const & nval, size_t nstart, size_t nend) :
+                    Node(Aggregate const & nval, size_t nstart, size_t nend) :
                         val(nval),
                         start(nstart),
                         end(nend) {}
@@ -85,21 +85,21 @@ namespace gokul2411s {
                 /**
                  * Wraps the null method provided by the aggregator.
                  */
-                U aggregator_null() const {
+                Aggregate aggregator_null() const {
                     return aggregator_.null();   
                 }
 
                 /**
                  * Wraps the two-element aggregation method provided by the aggregator.
                  */
-                U aggregate(U const & a, U const & b) const {
+                Aggregate aggregate(Aggregate const & a, Aggregate const & b) const {
                     return aggregator_.aggregate(a, b);
                 }
 
                 /**
                  * Wraps the n-times aggregation method provided by the aggregator.
                  */
-                U aggregate_times(U const & a, size_t times) const {
+                Aggregate aggregate_times(Aggregate const & a, size_t times) const {
                     return aggregator_.aggregate_times(a, times);
                 }
 
@@ -108,7 +108,7 @@ namespace gokul2411s {
                  * for its contribution towards the aggregate result of the
                  * closed range [l, r].
                  */
-                virtual U query_impl(size_t l, size_t r, Node * n) {
+                virtual Aggregate query_impl(size_t l, size_t r, Node * n) {
                     if (n->outside_range(l, r)) {
                         return aggregator_null();
                     }

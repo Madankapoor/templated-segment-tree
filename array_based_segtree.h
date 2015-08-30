@@ -7,23 +7,23 @@
 
 #include "updatable_segtree.h"
 
-#define ArrayBasedSegtreeTmplParamSpec template<typename T, typename U, typename Aggregator>
-#define ArrayBasedSegtreeTmpl ArrayBasedSegtree<T, U, Aggregator>
-#define UpdatableSegtreeTmpl UpdatableSegtree<T, U, Aggregator>
-#define SegtreeTmpl Segtree<T, U, Aggregator>
+#define ArrayBasedSegtreeTmplParamSpec template<typename Item, typename Aggregate, typename Aggregator>
+#define ArrayBasedSegtreeTmpl ArrayBasedSegtree<Item, Aggregate, Aggregator>
+#define UpdatableSegtreeTmpl UpdatableSegtree<Item, Aggregate, Aggregator>
+#define SegtreeTmpl Segtree<Aggregate, Aggregator>
 
 namespace gokul2411s {
     ArrayBasedSegtreeTmplParamSpec
         class ArrayBasedSegtree : public UpdatableSegtreeTmpl {
             public:
-                template<typename Iterator> ArrayBasedSegtree(Iterator begin, Iterator end, Aggregator const & aggregator);
+                template<typename Iterator> ArrayBasedSegtree(Iterator begin, Iterator end, Aggregator const & aggregator = Aggregator());
                 ~ArrayBasedSegtree();
             protected:
                 using typename UpdatableSegtreeTmpl::UpdatableNode;
                 struct WrappedNode : public UpdatableNode {
                     size_t index;
 
-                    WrappedNode(U const & val, size_t start, size_t end, size_t indexx) :
+                    WrappedNode(Aggregate const & val, size_t start, size_t end, size_t indexx) :
                         UpdatableNode(val, start, end), index(indexx) {}
                 };
 
@@ -66,7 +66,7 @@ namespace gokul2411s {
                  * closed range [l, r].
                  */
                 template<typename Iterator> WrappedNode * build(Iterator begin, Iterator end, size_t l, size_t r, size_t index = 0) {
-                    U val;
+                    Aggregate val;
                     if (l == r) {
                         val = *(begin + l);
                     } else {
